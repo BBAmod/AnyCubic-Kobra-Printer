@@ -1,4 +1,4 @@
-# AnyCubic Kobra Printer Firmware - ShadowFW
+﻿# AnyCubic Kobra Printer Firmware - ShadowFW
 
 This is a modified version of the OEM firmware.
 
@@ -11,6 +11,12 @@ Click the link below for more details on updating the printer UI.<br />
 - - - -
 
 Below is a list of versions and changes made:
+
+#### v1.1
+* Fixed a critical bug with resuming print after a power loss.
+
+Note: Anycubic decided to leave a bug in their "released" source code that does not exist in their production source code.
+
 
 #### v1.0
 * Changed auto-leving and probing settings:
