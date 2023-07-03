@@ -24,6 +24,15 @@
  * feature/powerloss.cpp - Resume an SD print after power-loss
  */
 
+/**
+ * 2023.06.25 George Corrigan
+ * 
+ * Updated this file to fix the resume print homing bug left
+ * behind by AnyCubic. After resume print from power-loss process
+ * should only home X and Y, and NOT Z axes.
+ */
+
+
 #include "../inc/MarlinConfigPre.h"
 
 #if ENABLED(POWER_LOSS_RECOVERY)
@@ -34,6 +43,9 @@
 #include "../module/stepper/indirection.h"
 #include "../HAL/shared/eeprom_api.h"
 
+#if ENABLED(BABYSTEPPING)
+#include "babystep.h"
+#endif
 
 bool PrintJobRecovery::enabled; // Initialized by settings.load()
 
@@ -189,7 +201,7 @@ void PrintJobRecovery::save(const bool force/*=false*/, const float zraise/*=0*/
     if (!++info.valid_head) ++info.valid_head; // non-zero in sequence
     //if (!IS_SD_PRINTING()) info.valid_head = 0;
     info.valid_foot = info.valid_head;
-//	SERIAL_ECHOLNPAIR("head=", info.valid_head,"foot=", info.valid_foot);	
+//	SERIAL_ECHOLNPAIR("head=", info.valid_head,"foot=", info.valid_foot);
 
     // Machine state
     info.current_position = current_position;
@@ -394,6 +406,16 @@ void PrintJobRecovery::write() {
  */
 void PrintJobRecovery::resume() {
 
+
+#define DEBUG_POWERLOSS_RESUME false
+
+
+#if DEBUG_POWERLOSS_RESUME
+  printf("info.x: %f\n", info.current_position.x);
+  printf("info.y: %f\n", info.current_position.y);
+  printf("info.z: %f\n", info.current_position.z);
+#endif
+
   char cmd[MAX_CMD_SIZE+16], str_1[16], str_2[16];
 
   const uint32_t resume_sdpos = info.sdpos; // Get here before the stepper ISR overwrites it
@@ -404,13 +426,48 @@ void PrintJobRecovery::resume() {
   // Restore cold extrusion permission
   TERN_(PREVENT_COLD_EXTRUSION, thermalManager.allow_cold_extrude = info.flag.allow_cold_extrusion);
 
+#if DEBUG_POWERLOSS_RESUME
+  printf("Before M420 S0 Z0: %d\n", __LINE__);
+  gcode.process_subcommands_now("M114 D");
+#endif
+
   #if HAS_LEVELING
     // Make sure leveling is off before any G92 and G28
     gcode.process_subcommands_now_P(PSTR("M420 S0 Z0"));
   #endif
 
+#if DEBUG_POWERLOSS_RESUME
+  printf("After M420 S0 Z0: %d\n", __LINE__);
+  gcode.process_subcommands_now("M114 D");
+#endif
+
+  // Restore the bed temperature,no waiting
   #if HAS_HEATED_BED
-    const int16_t bt = info.target_temperature_bed;
+    int16_t bt = info.target_temperature_bed;
+    if (bt) {
+      sprintf_P(cmd, PSTR("M140 S%i"), bt);
+      gcode.process_subcommands_now(cmd);
+    }
+  #endif
+
+  // Restore all hotend temperatures,no waiting
+  #if HAS_HOTEND
+    int16_t et = 0;
+    HOTEND_LOOP() {
+      et = info.target_temperature[e];
+      if (et) {
+    #if HAS_MULTI_HOTEND
+          sprintf_P(cmd, PSTR("T%i S"), e);
+          gcode.process_subcommands_now(cmd);
+    #endif
+        sprintf_P(cmd, PSTR("M104 S%i"), et);
+        gcode.process_subcommands_now(cmd);
+      }
+    }
+  #endif
+
+  #if HAS_HEATED_BED
+    bt = info.target_temperature_bed;
     if (bt) {
       // Restore the bed temperature
       sprintf_P(cmd, PSTR("M190 S%i"), bt);
@@ -421,7 +478,7 @@ void PrintJobRecovery::resume() {
   // Restore all hotend temperatures
   #if HAS_HOTEND
     HOTEND_LOOP() {
-      const int16_t et = info.target_temperature[e];
+      et = info.target_temperature[e];
       if (et) {
         #if HAS_MULTI_HOTEND
           sprintf_P(cmd, PSTR("T%i S"), e);
@@ -432,6 +489,11 @@ void PrintJobRecovery::resume() {
       }
     }
   #endif
+
+#if DEBUG_POWERLOSS_RESUME
+  printf("Before XY homed: %d\n", __LINE__);
+  gcode.process_subcommands_now("M114 D");
+#endif
 
   // Reset E, raise Z, home XY...
   #if Z_HOME_DIR > 0
@@ -451,9 +513,10 @@ void PrintJobRecovery::resume() {
     // Home safely with no Z raise
     gcode.process_subcommands_now_P(PSTR(
 //      "G28R0"                               // No raise during G28
-      "G28"                                   // raise
+//      "G28"                                 // raise
+      "G28R2"                               // Raise 2mm during G28 to avoid hitting print
       #if IS_CARTESIAN && DISABLED(POWER_LOSS_RECOVER_ZHOME)
-//        "XY"                                // Don't home Z on Cartesian unless overridden
+        "XY"                                // Don't home Z on Cartesian unless overridden
       #endif
     ));
 
@@ -461,6 +524,11 @@ void PrintJobRecovery::resume() {
 
   // Pretend that all axes are homed
   set_all_homed();
+
+#if DEBUG_POWERLOSS_RESUME
+  printf("After set all homed: %d\n", __LINE__);
+  gcode.process_subcommands_now("M114 D");
+#endif
 
   #if ENABLED(POWER_LOSS_RECOVER_ZHOME)
     // Z has been homed so restore Z to ZsavedPos + POWER_LOSS_ZRAISE
@@ -514,8 +582,17 @@ void PrintJobRecovery::resume() {
     }
     fwretract.current_hop = info.retract_hop;
   #endif
-  sprintf_P(cmd, PSTR("G1 F500 Z%s"), dtostrf(info.current_position.z + 5, 1, 3, str_1));
-  gcode.process_subcommands_now(cmd);
+
+// George: Removed for testing
+//sprintf_P(cmd, PSTR("G1 F500 Z%s"), dtostrf(info.current_position.z + 5, 1, 3, str_1));
+//gcode.process_subcommands_now(cmd);
+
+#if DEBUG_POWERLOSS_RESUME
+  printf("line: %d\n", __LINE__);
+  printf("info.flag.leveling: %d\n", info.flag.leveling);
+  printf("info.flag.fade: %d\n", info.fade);
+  gcode.process_subcommands_now("M114 D");
+#endif
 
   #if HAS_LEVELING
     // Restore leveling state before 'G92 Z' to ensure
@@ -525,6 +602,11 @@ void PrintJobRecovery::resume() {
       gcode.process_subcommands_now(cmd);
     }
   #endif
+
+#if DEBUG_POWERLOSS_RESUME
+  printf("After M420: %d\n", __LINE__);
+  gcode.process_subcommands_now("M114 D");
+#endif
 
   #if ENABLED(GRADIENT_MIX)
     memcpy(&mixer.gradient, &info.gradient, sizeof(info.gradient));
@@ -545,6 +627,61 @@ void PrintJobRecovery::resume() {
     gcode.process_subcommands_now_P(PSTR("G12"));
   #endif
 
+#if ENABLED(BABYSTEPPING)
+  #if DEBUG_POWERLOSS_RESUME
+    printf("Before baby: %d\n", __LINE__);
+    gcode.process_subcommands_now("M114 D");
+  #endif
+
+    dtostrf(info.current_position.z + 2.0f, 1, 3, str_1); // We raised 2mm before homing XY to avoid hitting print
+    sprintf_P(cmd, PSTR("G92.9 Z%s"), str_1);
+    gcode.process_subcommands_now(cmd);
+
+    xyze_pos_t pos_lev   = info.current_position;
+    planner.apply_leveling(pos_lev);
+
+    float z_diff = info.current_position.z - pos_lev.z;
+
+  #if DEBUG_POWERLOSS_RESUME
+    printf("pos_lev.z:  %f\n", pos_lev.z);
+    printf("z_diff   :  %f\n", z_diff);
+  #endif
+
+    xyze_pos_t hm_pos_lev = { X_HOME_POS, Y_HOME_POS, Z_HOME_POS };
+    planner.apply_leveling(hm_pos_lev);
+    float hm_z_diff = 0 - hm_pos_lev.z;
+
+    float all_diff = z_diff - hm_z_diff;
+
+  #if DEBUG_POWERLOSS_RESUME
+    printf("hm_pos_lev.z:  %f\n", hm_pos_lev.z);
+    printf("hm_z_diff   :  %f\n", hm_z_diff);
+  #endif
+
+    float all_steps = all_diff / planner.steps_to_mm[Z_AXIS];
+    int16_t all_baby_steps = all_steps > 0 ? CEIL(all_steps) : FLOOR(all_steps);
+
+  #if DEBUG_POWERLOSS_RESUME
+    printf("all_steps     :  %f\n", all_steps);
+    printf("all_baby_steps:  %f\n", all_baby_steps);
+  #endif
+
+    babystep.add_steps(Z_AXIS, all_baby_steps);
+  
+    gcode.process_subcommands_now("M400\nG4 P1000");
+
+  #if DEBUG_POWERLOSS_RESUME
+    printf("After baby: %d\n", __LINE__);
+    gcode.process_subcommands_now("M114 D");
+  #endif
+
+#endif
+
+#if DEBUG_POWERLOSS_RESUME
+  printf("Before moving to XY: %d\n", __LINE__);
+  gcode.process_subcommands_now("M114 D");
+#endif
+
   // Move back to the saved XY
   sprintf_P(cmd, PSTR("G1 X%s Y%s F3000"),
     dtostrf(info.current_position.x, 1, 3, str_1),
@@ -552,16 +689,22 @@ void PrintJobRecovery::resume() {
   );
   gcode.process_subcommands_now(cmd);
 
-  // Move back to the saved Z
+  gcode.process_subcommands_now("M400");
+
+#if DEBUG_POWERLOSS_RESUME
+  printf("Before Z down: %d\n", __LINE__);
+  gcode.process_subcommands_now("M114 D");
+#endif
+
+// Move back to the saved Z
   dtostrf(info.current_position.z, 1, 3, str_1);
-  #if Z_HOME_DIR > 0 || ENABLED(POWER_LOSS_RECOVER_ZHOME)
-    sprintf_P(cmd, PSTR("G1 Z%s F200"), str_1);
-  #else
-//    gcode.process_subcommands_now_P(PSTR("G1 Z0 F200"));
-//    sprintf_P(cmd, PSTR("G92.9 Z%s"), str_1);
   sprintf_P(cmd, PSTR("G1 Z%s F200"), str_1);
-  #endif
   gcode.process_subcommands_now(cmd);
+
+#if DEBUG_POWERLOSS_RESUME
+  printf("After Z down: %d\n", __LINE__);
+  gcode.process_subcommands_now("M114 D");
+#endif
 
   // Restore the feedrate
   sprintf_P(cmd, PSTR("G1 F%d"), info.feedrate);
