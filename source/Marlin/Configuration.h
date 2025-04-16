@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -101,9 +101,9 @@
 // @section info
 
 // Author info of this build printed to the host during boot and M115
-#define STRING_CONFIG_H_AUTHOR "(Shadow, default config)" // Who made the changes.
+#define STRING_CONFIG_H_AUTHOR "(laya25415, default config)" // Who made the changes.
 //#define CUSTOM_VERSION_FILE Version.h // Path from the root directory (no quotes)
-
+//find "laya" on file configuration_adv.h dgus_tft.h
 /**
  * *** VENDORS PLEASE READ ***
  *
@@ -767,7 +767,8 @@
  * Override with M92
  *                                      X, Y, Z, E0 [, E1[, E2...]]
  */
-#define DEFAULT_AXIS_STEPS_PER_UNIT   { 80, 80, 800, 390 }
+//laya#define DEFAULT_AXIS_STEPS_PER_UNIT   { 80, 80, 800, 390 }
+#define DEFAULT_AXIS_STEPS_PER_UNIT   { 80, 80, 800, 406 }
 
 /**
  * Default Max Feed Rate (mm/s)
@@ -787,7 +788,8 @@
  * Override with M201
  *                                      X, Y, Z, E0 [, E1[, E2...]]
  */
-#define DEFAULT_MAX_ACCELERATION      { 700, 600, 50, 3000 }
+//laya#define DEFAULT_MAX_ACCELERATION      { 700, 600, 50, 3000 }
+#define DEFAULT_MAX_ACCELERATION      { 1000, 720, 50, 3000 }
 
 //#define LIMITED_MAX_ACCEL_EDITING     // Limit edit via M201 or LCD to DEFAULT_MAX_ACCELERATION * 2
 #if ENABLED(LIMITED_MAX_ACCEL_EDITING)
@@ -802,7 +804,7 @@
  *   M204 R    Retract Acceleration
  *   M204 T    Travel Acceleration
  */
-#define DEFAULT_ACCELERATION          600     // X, Y, Z and E acceleration for printing moves
+#define DEFAULT_ACCELERATION          800     // laya default 600 X, Y, Z and E acceleration for printing moves
 #define DEFAULT_RETRACT_ACCELERATION  2000    // E acceleration for retracts
 #define DEFAULT_TRAVEL_ACCELERATION   1000    // X, Y, Z acceleration for travel (non printing) moves
 
@@ -817,7 +819,7 @@
 #define CLASSIC_JERK
 #if ENABLED(CLASSIC_JERK)
   #define DEFAULT_XJERK  5
-  #define DEFAULT_YJERK  5
+  #define DEFAULT_YJERK  3
   #define DEFAULT_ZJERK  0.3
 
   //#define TRAVEL_EXTRA_XYJERK 0.0     // Additional jerk allowance for all travel moves
@@ -1018,7 +1020,7 @@
  *     |    [-]    |
  *     O-- FRONT --+
  */
-#define NOZZLE_TO_PROBE_OFFSET { 43.5, 4.7, 0 }
+#define NOZZLE_TO_PROBE_OFFSET { -23.2, -22, 0 } //laya
 
 // Most probes should stay away from the edges of the bed, but
 // with NOZZLE_AS_PROBE this can be negative for a wider probing area.
@@ -1026,11 +1028,11 @@
 #define PROBING_MARGIN_LEFT  10
 #define PROBING_MARGIN_RIGHT 10
 #define PROBING_MARGIN_FRONT 10
-#define PROBING_MARGIN_BACK  10
+#define PROBING_MARGIN_BACK  0
 
 
 // X and Y axis travel speed (mm/min) between probes
-#define XY_PROBE_SPEED (133*60)
+#define XY_PROBE_SPEED (150*60) //laya deafult (133*60)
 
 // Feedrate (mm/min) for the first approach when double-probing (MULTIPLE_PROBING == 2)
 #define Z_PROBE_SPEED_FAST (4*60)
@@ -1074,7 +1076,7 @@
  * A total of 2 does fast/slow probes with a weighted average.
  * A total of 3 or more adds more slow probes, taking the average.
  */
-#define MULTIPLE_PROBING 3
+#define MULTIPLE_PROBING 2
 //#define EXTRA_PROBING    1
 
 /**
@@ -1164,7 +1166,9 @@
 // @section extruder
 
 // For direct drive extruder v9 set to true, for geared extruder set to false.
-#define INVERT_E0_DIR false
+//#define INVERT_E0_DIR false //titan aero
+//#define INVERT_E0_DIR true //laya bmg
+#define INVERT_E0_DIR false //laya titan aero
 #define INVERT_E1_DIR false
 #define INVERT_E2_DIR false
 #define INVERT_E3_DIR false
@@ -1192,16 +1196,16 @@
 
 // @section machine
 
-// The size of the print bed
+// laya The size of the print bed
 #define X_BED_SIZE 220
-#define Y_BED_SIZE 220
+#define Y_BED_SIZE 210
 
-// Travel limits (mm) after homing, corresponding to endstop positions.
-#define X_MIN_POS -37.2
-#define Y_MIN_POS -0.2
+// laya Travel limits (mm) after homing, corresponding to endstop positions.
+#define X_MIN_POS -30
+#define Y_MIN_POS -3
 #define Z_MIN_POS 0
-#define X_MAX_POS (X_BED_SIZE + 4)
-#define Y_MAX_POS (Y_BED_SIZE + 2)
+#define X_MAX_POS (X_BED_SIZE + 24)
+#define Y_MAX_POS (Y_BED_SIZE + 10)
 #define Z_MAX_POS 250
 
 /**
@@ -1363,8 +1367,8 @@
  */
 #define PREHEAT_BEFORE_LEVELING
 #if ENABLED(PREHEAT_BEFORE_LEVELING)
-  #define LEVELING_NOZZLE_TEMP 200   // (°C) Only applies to E0 at this time
-  #define LEVELING_BED_TEMP     70
+  #define LEVELING_NOZZLE_TEMP 170   // laya (°C) Only applies to E0 at this time
+  #define LEVELING_BED_TEMP     45
 #endif
 
 /**
@@ -1543,8 +1547,8 @@
   #define Z_SAFE_HOMING_Y_POINT Y_CENTER  // Y point for Z homing
 #endif
 
-// Homing speeds (mm/min)
-#define HOMING_FEEDRATE_MM_M { (75*60), (75*60), (10*60) }
+// Homing speeds (mm/min) laya
+#define HOMING_FEEDRATE_MM_M { (50*60), (50*60), (10*60) }
 
 // Validate that endstops are triggered on homing moves
 #define VALIDATE_HOMING_ENDSTOPS
@@ -1619,7 +1623,7 @@
  *
  *   M500 - Store settings to EEPROM.
  *   M501 - Read settings from EEPROM. (i.e., Throw away unsaved changes)
- *   M502 - Revert settings to "factory" defaults. (Follow with M500 to init the EEPROM.)
+ *   M502 - Revert settings to "factory" defaults. (last step M502 M500 Follow with M500 to init the EEPROM.)
  */
 #define EEPROM_SETTINGS     // Persistent storage with M500 and M501
 //#define DISABLE_M503        // Saves ~2700 bytes of PROGMEM. Disable for release!
@@ -1654,12 +1658,12 @@
 // Preheat Constants
 #define PREHEAT_1_LABEL       "PLA"
 #define PREHEAT_1_TEMP_HOTEND 190
-#define PREHEAT_1_TEMP_BED     60
+#define PREHEAT_1_TEMP_BED     45
 #define PREHEAT_1_FAN_SPEED     0 // Value from 0 to 255
 
-#define PREHEAT_2_LABEL       "ABS"
+#define PREHEAT_2_LABEL       "PETG"
 #define PREHEAT_2_TEMP_HOTEND 240
-#define PREHEAT_2_TEMP_BED    110
+#define PREHEAT_2_TEMP_BED    60
 #define PREHEAT_2_FAN_SPEED     0 // Value from 0 to 255
 
 /**
