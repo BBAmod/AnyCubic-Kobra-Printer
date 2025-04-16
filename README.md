@@ -1,10 +1,13 @@
-### Based on ShadowFW, I do some changes to fit my new extruder head and pcba bug fix
+# Based on ShadowFW, I do some changes to fit my new extruder head and pcba bug fix
 * PCBA bug fix from this https://www.reddit.com/r/anycubic/comments/ynvbj0/comment/jkzzjzt/<br />
   and change   <br />
   X_SLAVE_ADDRESS 3 //deafult was 0<br />
-  E0_SLAVE_ADDRESS 0 //deafult was 3
-* 
-
+  E0_SLAVE_ADDRESS 0 //deafult was 3<br />
+    //#define STEALTHCHOP_E //without this changes linear advance will cause the extruder motor stop
+* new extruder head help to reduce X axis weight, the mod you can find in
+* some speed and print aera changes, you can search "laya"in Configuration.h, I marked all the changes with laya in the file
+* ~~Increased the homing speed (by 50%)~~
+* ~~Increased the probes from 2 to 3~~
 
 - - - -
  
