@@ -4,11 +4,10 @@
   X_SLAVE_ADDRESS 3 //default was 0<br />
   E0_SLAVE_ADDRESS 0 //default was 3<br />
     //#define STEALTHCHOP_E //without this changes linear advance will cause the extruder motor stop
-* new extruder head help to reduce X axis weight, the mod you can find in
+* new extruder head help to reduce X axis weight, the stp 3D model you can find in https://www.thingiverse.com/thing:7011653 
 * some speed and print aera changes, you can search "laya"in Configuration.h, I marked all the changes with laya in the file
 * ~~Increased the homing speed (by 50%)~~
 * ~~Increased the probes from 2 to 3~~
-* 3D model stp file please check https://www.thingiverse.com/thing:7011653 
 - - - -
  
  # AnyCubic Kobra Printer Firmware - ShadowFW
